@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2026 WYR233
+ *
+ * Y700 Gen4 (Lenovo elden, SM8750) GPU 供电移植
+ *
+ * 目的:让 msm drm 的 "vdd"/"vddcx" 拿到真实供电句柄,替代 dummy
+ * regulator(dummy 0V 是 GPU 上电链上的一个疑点)。
+ *
+ * 供电链(证据与出处见 docs/(未公开) GPU供电移植笔记):
+ *   GPU vdd  (GFX)  gfx.lvl = pm8550ve-"d" 的 S5D  (原厂 OCP 表 S5D_LEVEL)
+ *   GPU vddcx(CX)   cx.lvl  = pm8550ve-"i" 的 S8I  (原厂 OCP 表 periph-8b0)
+ *   MX(共享)        mx.lvl  = pm8550ve-"i" 的 S3I
+ * 参照:LineageOS SM8650 pineapple-regulators.dtsi(同构 PMIC 架构:
+ *   gfx.lvl=S5D_LEVEL、cx.lvl=S8I_LEVEL、mx.lvl=S3I_LEVEL)与
+ *   上游 sm8750-mtp.dts 的 regulators 节点写法。
+ *
+ * 安全设计:
+ *  - 不写 regulator-initial-mode / qcom,init-voltage / always-on / boot-on:
+ *    probe 时不动轨,电压仍由 GMU HFI 经 RPMh 投 gfx.lvl/cx.lvl 控制;
+ *  - msm_gpu_pm_resume() 只会 regulator_enable(VRM enable 请求,与 HFI
+ *    的 level 投票在 RPMh 侧合路,不会改电压);
+ *  - 电压范围按 ftsmps525 硬件能力 + SM8650 下游同轨范围取宽,仅作约束。
+ */
+
+&apps_rsc {
+	/* GFX:pm8550ve 实例 d 的 S5 双域轨(gfx.lvl 的物理载体) */
+	regulators-gpu-gfx {
+		compatible = "qcom,pm8550ve-rpmh-regulators";
+		qcom,pmic-id = "d";
+
+		vdd-s5-supply = <&vph_pwr>;
+
+		vreg_s5d_gfx: smps5 {
+			regulator-name = "vreg_s5d_gfx";
+			regulator-min-microvolt = <300000>;
+			regulator-max-microvolt = <1100000>;
+		};
+	};
+
+	/* CX:pm8550ve 实例 i 的 S8(cx.lvl 的物理载体) */
+	regulators-gpu-cx {
+		compatible = "qcom,pm8550ve-rpmh-regulators";
+		qcom,pmic-id = "i";
+
+		vdd-s8-supply = <&vph_pwr>;
+
+		vreg_s8i_cx: smps8 {
+			regulator-name = "vreg_s8i_cx";
+			regulator-min-microvolt = <300000>;
+			regulator-max-microvolt = <1000000>;
+		};
+	};
+};
+
+&gpu {
+	vdd-supply = <&vreg_s5d_gfx>;
+	vddcx-supply = <&vreg_s8i_cx>;
+};

@@ -1,0 +1,38 @@
+# 构建产物
+*.img
+*.img.gz
+*.cpio
+*.cpio.gz
+*.o
+*.ko
+*.dtb
+Image
+Image.gz
+vmlinux
+System.map
+
+# 固件与私有数据（永不入库）
+firmware/
+inputs/
+*.pem
+*.key
+*.ed25519
+id_rsa*
+id_ed25519*
+
+# 构建目录
+build/
+build-out/
+kbuild/
+.out/
+.tmp/
+cache/
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# 日志
+*.log

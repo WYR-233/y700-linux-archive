@@ -1,0 +1,32 @@
+# Y700 (Lenovo TB322FC) — USB 复合 gadget 主机侧 udev 规则
+#   设备侧规划：acm(串口) + rndis + ecm(网卡)，VID:PID = 0525:a4a7
+#   安装路径：/etc/udev/rules.d/70-y700-usb.rules
+#   安装方式：bash tools/host-usb-net.sh install    （幂等，可重复执行）
+#
+# 提供：
+#   /dev/ttyY700        -> ttyACMx   （设备侧 /dev/ttyGS0 的救援 shell）
+#   /dev/y700-net       -> 网卡 ifindex 直连（免网卡名漂移，配 NM 用）
+#   权限 0666（串口 + 网络 ifindex），非 root 也能直接打开
+
+# --- 1) 只处理这台设备：0525:a4a7，且是 device 而不是某个 interface ---
+SUBSYSTEM=="usb", ACTION=="add|change", ATTR{idVendor}=="0525", ATTR{idProduct}=="a4a7", ENV{DEVTYPE}=="usb_device", ENV{ID_Y700_USB}="1"
+
+# --- 2) CDC-ACM 串口：内核 cdc_acm 建出 ttyACMx，再给稳定名 ---
+SUBSYSTEM=="tty", ACTION=="add|change", ENV{ID_Y700_USB}=="1", KERNEL=="ttyACM*", SYMLINK+="ttyY700", MODE="0666", GROUP="uucp"
+
+# --- 3) USB 复合设备的节点本身也放开，便于非 root 抓描述符 ---
+SUBSYSTEM=="usb", ACTION=="add|change", ENV{ID_Y700_USB}=="1", MODE="0666"
+
+# --- 4) 网卡（rndis_host / cdc_ether / cdc_ncm 都会命中）---
+#   a. 固定 host 侧 MAC = 02:79:37:00:00:01（本地管理位私有 MAC）
+#      → 这样 NM 的 match.mac 才真正稳定（不固定的话内核每次可能给随机 MAC）
+RUN+="/usr/local/libexec/y700-usb-helper mac $name"
+#   b. /dev/y700-net = 「网卡的字符设备节点」，设备号里编码了 ifindex，
+#      所以它永远不随 enp*/usb0/eth* 改名而漂移，也永远指向本机这一侧的网卡。
+#      （注意：udev 的 RUN 里不能出现 $变量 或 $$，逻辑必须放在 helper 脚本里）
+RUN+="/usr/local/libexec/y700-usb-helper devnode $name $env{IFINDEX}"
+#   若想额外固定网卡名（可选，默认注释掉：NM 靠 MAC + 驱动匹配，已经够稳）
+#SUBSYSTEM=="net", ACTION=="add|change", ENV{ID_Y700_USB}=="1", NAME="y700usb"
+
+# --- 5) 给 systemd-networkd 用户的等价物（本机 NM 在跑，默认注释）---
+#SUBSYSTEM=="net", ACTION=="add|change", ENV{ID_Y700_USB}=="1", ENV{SYSTEMD_NETWORK_LINK_NAME}="y700usb"

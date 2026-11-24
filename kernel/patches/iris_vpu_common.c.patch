@@ -1,0 +1,33 @@
+--- linux-stable-7.2.7/drivers/media/platform/qcom/iris/iris_vpu_common.c	2026-10-01 15:22:11.349127777 +0800
++++ kbuild/drivers/media/platform/qcom/iris/iris_vpu_common.c	2026-10-07 18:13:32.644379144 +0800
+@@ -83,8 +83,9 @@
+ 	while (!ctrl_status && count < max_tries) {
+ 		ctrl_status = readl(core->reg_base + CTRL_STATUS);
+ 		if ((ctrl_status & CTRL_ERROR_STATUS__M) == 0x4) {
+-			dev_err(core->dev, "invalid setting for uc_region\n");
+-			break;
++			dev_err(core->dev, "invalid setting for uc_region, ctrl_status=%#x\n",
++				ctrl_status);
++			return -EINVAL;
+ 		}
+ 
+ 		usleep_range(50, 100);
+@@ -92,7 +93,8 @@
+ 	}
+ 
+ 	if (count >= max_tries) {
+-		dev_err(core->dev, "error booting up iris firmware\n");
++		dev_err(core->dev, "error booting up iris firmware, ctrl_status=%#x\n",
++			ctrl_status);
+ 		return -ETIME;
+ 	}
+ 
+@@ -237,7 +239,7 @@
+ 	iris_unset_icc_bw(core);
+ 
+ 	if (!iris_vpu_watchdog(core, core->intr_status))
+-		disable_irq(core->irq);
++		disable_irq_nosync(core->irq);
+ }
+ 
+ int iris_vpu_power_on_controller(struct iris_core *core)
