@@ -1,10 +1,10 @@
-# Lenovo Legion Y700 Gen4 (TB322FC / elden) — 自移植 Linux 记录
+# Lenovo Legion Y700 Gen4 (TB322FC / elden) — 自移植 Linux 存档
 
 把联想拯救者 Y700 四代平板（SM8750 / 代号 `elden`）跑成一台**原生的、不带 Android 的 Linux 平板**的完整尝试记录：
 主线内核 + Debian/Arch rootfs + A/B 双槽保底。
 
 > **这不是一个能直接 `git clone` 就刷好的发行包。**
-> 这是一个**已结项项目的技术存档**：可复现的资料、脚本、设备树和踩坑记录，
+> 这是一个**已结项项目的技术存档**（仓库名里的 archive 就是这个意思）：可复现的资料、脚本、设备树和踩坑记录，
 > 以及一份诚实的「哪些成了、哪些没成」的清单。
 
 ---
