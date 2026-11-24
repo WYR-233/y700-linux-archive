@@ -20,13 +20,13 @@ inputs/
 id_rsa*
 id_ed25519*
 
-# 构建目录
-build/
-build-out/
-kbuild/
-.out/
-.tmp/
-cache/
+# 构建目录（仅仓库根目录；脚本目录里的 build/ 不要误伤）
+/build/
+/build-out/
+/kbuild/
+/.out/
+/.tmp/
+/cache/
 
 # 系统垃圾
 .DS_Store
